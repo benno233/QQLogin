@@ -12,7 +12,6 @@ QQEntity = new QQ.QQEntity(qqinfo);
 #console.log QQEntity.qq
 
 QQEntity.login ()->
-	console.log "Login Ok!"
 	# QQEntity.emotionDelte 1, (err,body)->
 	# 	console.log "delte"
 	fresh = ()->
@@ -20,13 +19,15 @@ QQEntity.login ()->
 			console.log "Like Monster GO!"
 			#console.log body
 			matches = body.match /data-curkey="http:\/\/user.qzone.qq.com\/\d*?\/mood\/(.*?)"/g
+			#console.log matches
 			#idR = new RegExp('data-curkey="http:\/\/user.qzone.qq.com\/\d*?\/mood\/(.*?)"','g')
-			for match in matches 
-				mts = match.match /data-curkey="http:\/\/user.qzone.qq.com\/(\d*?)\/mood\/(.*?)"/
-				qq = mts[1]
-				id = mts[2]
-				QQEntity.like qq,id, (err,body)->
-					console.log err if err
+			if matches 	
+				for match in matches 
+					mts = match.match /data-curkey="http:\/\/user.qzone.qq.com\/(\d*?)\/mood\/(.*?)"/
+					qq = mts[1]
+					id = mts[2]
+					QQEntity.like qq,id, (err,body)->
+						console.log err if err
 
 	setInterval fresh,1000*3
 

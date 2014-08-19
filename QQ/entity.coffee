@@ -165,7 +165,7 @@ class QQ
 					request(getcaptcha).pipe(fs.createWriteStream('captcha.JPEG'))
 
 					rl.question 'Check out captcha get input it\n', (answer)->
-						code = answer
+						that.code = answer
 						console.log "thanks! input is #{that.code}."
 						rl.close()
 
@@ -181,7 +181,13 @@ class QQ
 						request loginRequest , (err,res,body)->
 							#console.log loginGet
 							#console.log res.headers
-							# cookies = J.getCookies(loginGet)
+							cookies = J.getCookies(loginGet)
+							#这些是必要的cookie
+							for cookie in cookies
+						 		if cookie.key is "skey"
+						 			that.skey = cookie.value
+							that.gtk = gtk.getGTK(that.skey)
+							# console.log cookies
 							# skey = cookies.skey
 							# ptcz = cookies.ptcz
 							# uin  = "o0"+that.qq

@@ -1,3 +1,48 @@
 #QQ空间点赞狂魔
 -----
-1. 封装了一些登录的功能.
+
+###要点
+
+1.  封装了一些登录的功能,需要模拟登录拿到一些必要的cookie,并且生成一个GTK值,方便后面的操作
+2.  登录以后就可以尽情hack自己想要的功能了,目前有删除说说,点赞的功能,分别对应的是`QQ.like`和`QQ.emotionDelte`
+
+###使用方法
+
+按照`config.json.sample`创建一个`config.json`,配置自己的账号密码就可以了.
+
+###Example
+
+下面这个例子抓自己的消息界面然后自动点赞.
+
+```
+qqinfo 	 = require './config.json'
+QQ       = require './QQ/entity.coffee'
+
+
+QQEntity = new QQ.QQEntity(qqinfo);
+
+#console.log QQEntity.qq
+
+QQEntity.login ()->
+	console.log "Login Ok!"
+	# QQEntity.emotionDelte 1, (err,body)->
+	# 	console.log "delte"
+	fresh = ()->
+		QQEntity.getEmotionIndexPage (err,body)->
+			console.log "Like Monster GO!"
+			#console.log body
+			matches = body.match /data-curkey="http:\/\/user.qzone.qq.com\/\d*?\/mood\/(.*?)"/g
+			#idR = new RegExp('data-curkey="http:\/\/user.qzone.qq.com\/\d*?\/mood\/(.*?)"','g')
+			for match in matches 
+				mts = match.match /data-curkey="http:\/\/user.qzone.qq.com\/(\d*?)\/mood\/(.*?)"/
+				qq = mts[1]
+				id = mts[2]
+				QQEntity.like qq,id, (err,body)->
+					console.log err if err
+
+	setInterval fresh,1000*3
+```
+
+
+
+

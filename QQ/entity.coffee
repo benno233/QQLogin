@@ -24,12 +24,39 @@ class QQ
 		@login_sig = {}
 		@code = {}
 		#加密后的密码
-		@p = ''
 		@skey = {}
 		@ptz = {}
 		@skey = ''
-		{@qq,@password} = qqinfo
-		@gtk = ''
+		{@qq,@password,@gtk,@jar} = qqinfo
+
+	emotionPost:(content,cb)->
+		postUrl =  "http://taotao.qq.com/cgi-bin/emotion_cgi_publish_v6?g_tk=#{@gtk}&"
+		console.log "sending request to #{postUrl}"
+		Head.Host = "taotao.qq.com"
+		Head.Origin = "http://user.qzone.qq.com"
+		Head.Referer = "http://user.qzone.qq.com/#{@qq}/311"
+		form  = 
+			syn_tweet_verson:1
+			who:1
+			con:content
+			feedversion:1
+			ver:1
+			ugc_right:1
+			to_tweet:0
+			to_sign:0
+			hostuin:@qq
+			code_version:1
+			format:"fs"
+			qzreferrer:"http://user.qzone.qq.com/#{@qq}"
+			
+		post =
+			url:postUrl
+			headers:Head
+			method:"POST"
+			form:form
+
+		request post,(err,res,body)->
+			cb(err,body)
 
 	emotionDelte:(id,cb)->
 		if @gtk is ''
@@ -82,15 +109,24 @@ class QQ
 				cb(err,body)
 
 	getEmotionIndexPage: (cb)->
+
 			get = 
 				url:"http://user.qzone.qq.com/#{@qq}/infocenter"
 				header:Head
-				#method:'GET'
+				method:'GET' 
+			
 			request get,(err,res,body)->
+				#console.log body
 				cb(err,body)
 
 
 	login:(cb)->
+		console.log "GTK is #{@gtk}\n"
+
+		# if @gtk != "" 
+		# 	J = @jar
+		# 	return cb()
+
 		rl = readline.createInterface {
 				input:process.stdin,
 				output:process.stdout
@@ -187,6 +223,9 @@ class QQ
 						 		if cookie.key is "skey"
 						 			that.skey = cookie.value
 							that.gtk = gtk.getGTK(that.skey)
+							qqinfo.gtk = that.gtk
+							#qqinfo.jar = J
+							fs.writeFile('./config.json',JSON.stringify(qqinfo),cb)
 							# console.log cookies
 							# skey = cookies.skey
 							# ptcz = cookies.ptcz
@@ -194,7 +233,7 @@ class QQ
 							# console.log skey,ptcz,uin
 							# console.log "\n\n"
 							# console.log body
-							cb()
+							
 				else
 					console.log 'Need no captcha'
 
@@ -221,8 +260,8 @@ class QQ
 						# console.log skey,ptcz,uin
 						#skey 用来生成GTK
 						that.gtk = gtk.getGTK(that.skey)
-						#console.log that.gtk
-						cb()
-
+						qqinfo.gtk = that.gtk
+						#qqinfo.jar = J
+						fs.writeFile('./config.json',JSON.stringify(qqinfo),cb)
 
 exports.QQEntity = QQ

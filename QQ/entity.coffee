@@ -3,11 +3,26 @@ fs       = require 'fs'
 encode 	 = require '../lib/encode'
 gtk      = require '../lib/encode_g_tk'
 readline = require 'readline' 
+c               =  require '../cookie.json'
 qqinfo 	 = require '../config.json'
-
 J      = request.jar()
 
+qqinfo.header = c.header
+qqinfo.uri = c.uri
+
+
 request  = request.defaults {jar:J}
+
+if qqinfo.header.length > 0
+	if qqinfo.header instanceof Array
+		cookies = qqinfo.header.map (c) ->
+			request.cookie(c)
+	else
+		cookies = request.cookie(qqinfo.header)
+
+	for cookie in cookies 
+
+		J.setCookie(cookie, qqinfo.uri)
 
 Head = {
 		'User-Agent' : "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.153 Safari/537.36"
@@ -27,11 +42,11 @@ class QQ
 		@skey = {}
 		@ptz = {}
 		@skey = ''
-		{@qq,@password,@gtk,@jar} = qqinfo
+		{@qq,@password,@gtk,@header} = qqinfo
 
 	emotionPost:(content,cb)->
 		postUrl =  "http://taotao.qq.com/cgi-bin/emotion_cgi_publish_v6?g_tk=#{@gtk}&"
-		console.log "sending request to #{postUrl}"
+		#console.log "sending request to #{postUrl}"
 		Head.Host = "taotao.qq.com"
 		Head.Origin = "http://user.qzone.qq.com"
 		Head.Referer = "http://user.qzone.qq.com/#{@qq}/311"
@@ -56,9 +71,23 @@ class QQ
 			form:form
 
 		request post,(err,res,body)->
-			cb(err,body)
+			console.log if err 
+			loginR = /"message":"请先登录空间"/g
+			feedR = /"feedinfo"/g
 
-	emotionDelte:(id,cb)->
+			if body.match feedR
+				err = "send too fast"
+				console.log body
+				return cb(err,body)
+
+			if body.match(loginR)
+				err  = "login first"
+				return @login ()->
+					cb(err,body)
+			else
+				return cb(err,body)
+
+	emotionDelete:(id,cb)->
 		if @gtk is ''
 			err = "login not inited."
 			cb(err,null)
@@ -123,9 +152,10 @@ class QQ
 	login:(cb)->
 		console.log "GTK is #{@gtk}\n"
 
-		# if @gtk != "" 
-		# 	J = @jar
-		# 	return cb()
+		if qqinfo.header.length >0
+			delete qqinfo.header
+			delete qqinfo.uri
+			return cb()
 
 		rl = readline.createInterface {
 				input:process.stdin,
@@ -133,8 +163,6 @@ class QQ
 		}
 		#一些必要的头
 
-
-			
 		# #获取验证信息
 		# captchaUrl= "http://check.ptlogin2.qq.com/check?regmaster=&uin=#{@qq}&appid=549000912&js_ver=10051&js_type=1&login_sig=#{@login_sig}&u1=http%3A%2F%2Fqzs.qq.com%2Fqzone%2Fv5%2Floginsucc.html%3Fpara%3Dizone&r=#{Math.random()}"
 
@@ -216,16 +244,42 @@ class QQ
 						console.log "Logining... sendding request to\n#{loginRequest.url}\n____________________"
 						request loginRequest , (err,res,body)->
 							#console.log loginGet
+							# ptuiCB('4','0','','0','您输入的验证码不正确，请重新输入。', '2905260776');
+							# ptuiCB('0','0','http://qzs.qq.com/qzone/v5/loginsucc.html?para=izone','0','登录成功！', 'SSDUT学生周知');
 							#console.log res.headers
+
+							if body 
+								codeR =  /ptuiCB\('(\d)',/g
+								codeR.exec(body)
+								code = RegExp.$1
+								#console.log code
+								if code != "0"
+									console.log "login fail!"
+									process.exit()
+								else
+									console.log "login success!"
+
+							#console.log res
 							cookies = J.getCookies(loginGet)
+							cookieString = J.getCookieString(loginGet)
+							# console.log cookieString
+							# qqinfo.cookie = cookieString
+							c.header = res.headers["set-cookie"]
+							c.uri  = loginGet
 							#这些是必要的cookie
 							for cookie in cookies
-						 		if cookie.key is "skey"
+								if cookie.key is 'skey'
 						 			that.skey = cookie.value
+								#console.log cookie
+
+
+							delete qqinfo.header
+							delete qqinfo.uri
 							that.gtk = gtk.getGTK(that.skey)
 							qqinfo.gtk = that.gtk
 							#qqinfo.jar = J
-							fs.writeFile('./config.json',JSON.stringify(qqinfo),cb)
+							fs.writeFile './cookie.json',JSON.stringify(c),()->
+								fs.writeFile('./config.json',JSON.stringify(qqinfo),cb)
 							# console.log cookies
 							# skey = cookies.skey
 							# ptcz = cookies.ptcz
@@ -249,19 +303,28 @@ class QQ
 					console.log "Logining... sendding request to\n#{loginRequest.url}\n____________________"
 					request loginRequest , (err,res,body)->
 						cookies = J.getCookies(loginGet)
+						cookieString = J.getCookieString(loginGet)
 						#这些是必要的cookie
+						# console.log cookieString
+						# qqinfo.cookie = cookieString
+						c = {}
+						c.header = res.headers["set-cookie"]
+						c.uri = loginGet
+						qqinfo.header = res.headers["set-cookie"]
 						for cookie in cookies
-						 	if cookie.key is 'skey'
-						 		that.skey = cookie.value
-						# 	if cookie.key is 'ptcz'
-						# 		ptcz = cookie.value
-						#	if cookie.key is 'uin'
-						#		uin  = cookie.value
+							if cookie.key is 'skey'
+					 			that.skey = cookie.value
+							#console.log(cookie)
+
+
 						# console.log skey,ptcz,uin
 						#skey 用来生成GTK
 						that.gtk = gtk.getGTK(that.skey)
 						qqinfo.gtk = that.gtk
+						delete qqinfo.header
+						delete qqinfo.uri
 						#qqinfo.jar = J
-						fs.writeFile('./config.json',JSON.stringify(qqinfo),cb)
+						fs.writeFile './cookie.json',JSON.stringify(c),()->
+							fs.writeFile('./config.json',JSON.stringify(qqinfo),cb)
 
 exports.QQEntity = QQ

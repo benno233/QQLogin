@@ -4,11 +4,13 @@
 ###要点
 
 1.  封装了一些登录的功能,需要模拟登录拿到一些必要的cookie,并且生成一个GTK值,方便后面的操作
-2.  登录以后就可以尽情hack自己想要的功能了,目前有删除说说,点赞的功能,分别对应的是`QQ.like`和`QQ.emotionDelte`
+2.  登录以后就可以尽情hack自己想要的功能了,目前有删除说说,发表说说,点赞的功能,分别对应的是`QQ.like`和`QQ.emotionDelte`还有`QQ.emotionPost`
 
 ###使用方法
 
 按照`config.json.sample`创建一个`config.json`,配置自己的账号密码就可以了.
+另外一个文件用于存储cookie的信息,存的是头文件,方便request的cookie.Jar初始化
+`cat cookie.json.sample cookie.json`
 
 ###Example
 
@@ -43,6 +45,94 @@ QQEntity.login ()->
 	setInterval fresh,1000*3
 ```
 
+这个例子是基于已有的学生周知的接口,扩展的QQ空间版本的学生周之机器人
 
 
 
+```
+request  = require 'request'
+fs       = require 'fs'
+encode 	 = require './lib/encode'
+readline = require 'readline' 
+qqinfo 	 = require './config.json'
+QQ       = require './QQ/entity.coffee'
+
+
+
+QQEntity = new QQ.QQEntity(qqinfo);
+id = 0
+init = true
+fetch = true
+
+host = "http://115.28.2.165:8000/"
+# #console.log QQEntity.qq
+
+globalNew = []
+
+getNews = (cb) ->
+
+	#console.log "get news"
+	request {url:host+"latest"},(err,res,body)->
+		news = JSON.parse body
+		
+		if init
+			
+			request {url:host+"date/"+qqinfo.lastTime+"/"+news.date},(err,res,body) ->
+				console.log host+qqinfo.lastTime+"/"+news.date
+				init = false
+				newsArr = JSON.parse body
+				for news in  newsArr
+					globalNew.push news
+
+		else	
+			
+			if fetch and  id != news.id
+				console.log "get new  news" , news.id
+				#Critical Section	
+				fetch = false
+				tmpId = qqinfo.lastId
+				request {url:host+"id/"+tmpId+"-"+news.id},(err,res,body)->
+					console.log host+"id/"+tmpId+"-"+news.id
+					newsArr = JSON.parse body
+					count = 0
+					console.log "--"
+					for news in  newsArr
+						console.log news.id
+						globalNew.push news
+					console.log "--"
+
+					if newsArr.length > 0
+						id = newsArr[0].id
+					fetch = true
+			else
+				#console.log "id #{id} i== news.id #{news.id},no new news"
+
+						
+sendNews = () ->
+
+		news = globalNew.pop()
+		if news
+			console.log "send news"
+			content = "News:#{news.title} Link:http://ssdut.dlut.edu.cn#{news.link}"
+			console.log "post #{news.id}:\n#{content}"
+			QQEntity.emotionPost content,(err,body)->
+				if err 
+					console.log err
+					return 
+				id = news.id
+				qqinfo.lastTime = news.date
+				qqinfo.lastId = news.id
+				fs.writeFile './config.json',JSON.stringify(qqinfo),(err)->
+					fetch = true
+					console.log err if err
+					console.log 'time saved!'
+		else
+			console.log "no new to send"
+
+
+
+QQEntity.login ()->
+	setInterval getNews,1000*15
+	setTimeout sendNews,1000*20	
+	setInterval sendNews , 1000*60*10
+```	

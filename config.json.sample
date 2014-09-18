@@ -2,5 +2,7 @@
 	"qq":"123456789",
 	"password":"987654321",
 	"gtk":"",
-	"lastTime":null
+	"lastTime":null,
+	"lastId":0,
+	"init":true
 }

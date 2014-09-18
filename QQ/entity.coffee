@@ -69,7 +69,7 @@ class QQ
 			headers:Head
 			method:"POST"
 			form:form
-
+		that = @
 		request post,(err,res,body)->
 			console.log if err 
 			loginR = /"message":"请先登录空间"/g
@@ -82,7 +82,7 @@ class QQ
 
 			if body.match(loginR)
 				err  = "login first"
-				return @login ()->
+				return that.login ()->
 					cb(err,body)
 			else
 				return cb(err,body)

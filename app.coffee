@@ -75,10 +75,11 @@ sendNews = () ->
 					console.log err if err
 					console.log 'time saved!'
 		else
-			cosole.log "no new to send"
+			console.log "no new to send"
+
+
 
 QQEntity.login ()->
-	setInterval getNews,1000*2
-
-	setInterval sendNews , 1000*60*30 
+	setInterval getNews,1000*15
+	setInterval sendNews , 1000*60*30
 	

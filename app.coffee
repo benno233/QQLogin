@@ -9,7 +9,8 @@ QQ       = require './QQ/entity.coffee'
 
 QQEntity = new QQ.QQEntity(qqinfo);
 id = 0
-init = true
+init = qqinfo.init
+console.log "init:#{init}"
 fetch = true
 
 host = "http://115.28.2.165:8000/"
@@ -30,7 +31,7 @@ getNews = (cb) ->
 				init = false
 				newsArr = JSON.parse body
 				for news in  newsArr
-					globalNew.push news
+					globalNew.unshift news
 
 		else	
 			
@@ -39,6 +40,8 @@ getNews = (cb) ->
 				#Critical Section	
 				fetch = false
 				tmpId = qqinfo.lastId
+				if news.id > tmpId 
+					tmpId = tmpId + 1
 				request {url:host+"id/"+tmpId+"-"+news.id},(err,res,body)->
 					console.log host+"id/"+tmpId+"-"+news.id
 					newsArr = JSON.parse body
@@ -77,9 +80,7 @@ sendNews = () ->
 		else
 			console.log "no new to send"
 
-
-
 QQEntity.login ()->
-	setInterval getNews,1000*15
+	setInterval getNews ,1000*15
 	setInterval sendNews , 1000*60*30
 	

@@ -76,14 +76,17 @@ class QQ
 			feedR = /"feedinfo"/g
 
 			if body.match feedR
-				err = "send too fast"
-				console.log body
+				#err = "send too fast"
+				#console.log body
 				return cb(err,body)
 
 			if body.match(loginR)
+				qqinfo.header = []
+				qqinfo.uri = []
 				err  = "login first"
+				console.log err
 				return that.login ()->
-					cb(err,body)
+					that.emotionPost content,cb
 			else
 				return cb(err,body)
 
@@ -153,8 +156,7 @@ class QQ
 		console.log "GTK is #{@gtk}\n"
 
 		if qqinfo.header.length >0
-			delete qqinfo.header
-			delete qqinfo.uri
+			console.log "have logined"
 			return cb()
 
 		rl = readline.createInterface {
@@ -273,8 +275,6 @@ class QQ
 								#console.log cookie
 
 
-							delete qqinfo.header
-							delete qqinfo.uri
 							that.gtk = gtk.getGTK(that.skey)
 							qqinfo.gtk = that.gtk
 							#qqinfo.jar = J
@@ -321,8 +321,6 @@ class QQ
 						#skey 用来生成GTK
 						that.gtk = gtk.getGTK(that.skey)
 						qqinfo.gtk = that.gtk
-						delete qqinfo.header
-						delete qqinfo.uri
 						#qqinfo.jar = J
 						fs.writeFile './cookie.json',JSON.stringify(c),()->
 							fs.writeFile('./config.json',JSON.stringify(qqinfo),cb)

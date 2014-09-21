@@ -1,4 +1,5 @@
 config.json
 cookie.json
+tmp/
 *.JPEG
 log
